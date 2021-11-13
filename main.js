@@ -42,15 +42,26 @@ function preload()
     this.load.image('laser', imgfolder + "/laser.png");
 }
 
+function disable_group(group) {
+    for(let i = 0; i < group.children.entries.length; i++) 
+        group.children.entries[i].setActive(false).setVisible(false);
+}
+
 function create()
 {
     asteroids = this.physics.add.group({
         key: 'meteor1',
         repeat: 10,
-        setXY: { x: 12, y: 0, stepX: 100}
+        setXY: { x: 0, y: 0 }
     });
+    disable_group(asteroids);
     player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'ship');
     player.setBounce(0.5);
+    this.time.addEvent({
+        delay: 500,
+        callback: add_asteroid,
+        loop: true
+    });
 
     this.physics.add.overlap(player, asteroids, collide_player_asteroid)
 
@@ -59,16 +70,7 @@ function create()
         repeat: LASER_MAX - 1,
         setXY: { x: 0, y: 0}
     });
-    for(let i = 0; i < lasers.children.entries.length; i++) 
-        lasers.children.entries[i].setActive(false).setVisible(false);
-    /*
-    for(let i = 0; i < LASER_MAX; ++i) {
-        let laser = this.physics.add.sprite(player.x, player.y, 'laser');
-        laser.setActive(false).setVisible(false);
-        lasers.push(laser);
-    }
-    this.physics.add.overlap(laser, asteroids, collide_laser_asteroid);
-    */
+    disable_group(lasers);
     this.physics.add.overlap(lasers, asteroids, collide_laser_asteroid);
 
     cursors = this.input.keyboard.createCursorKeys();
@@ -77,14 +79,18 @@ function create()
 
 function add_asteroid()
 {
-    // TODO treat as objects? collision?
-    let x = Math.random() * WORLD_WIDTH;
-    let y = Math.random() * WORLD_HEIGHT;
-    let imageindex = Math.floor(Math.random() * 4) + 1;
-
+    let asteroid = find_inactive_in_group(asteroids)
+    if(asteroid == null)
+        return;
+    asteroid.x = Math.random() * WORLD_WIDTH;
+    asteroid.y = Math.random() * WORLD_HEIGHT;
+    asteroid.setActive(true).setVisible(true);
+    //let imageindex = Math.floor(Math.random() * 4) + 1;
+    /*
     let asteroid = game.physics.add.sprite(x, y, 'meteor' + imageindex);
     asteroids.add(asteroid);
     game.add.image(x, y, 'meteor' + imageindex);
+    */
 }
 
 function collide_laser_asteroid(laser, asteroid)
@@ -100,12 +106,16 @@ function collide_player_asteroid(player, asteroid)
     // TODO
 }
 
-function find_inactive_laser() {
-    for(let i = 0; i < lasers.children.entries.length; i++) {
-        if(!lasers.children.entries[i].active)
-            return lasers.children.entries[i];
+function find_inactive_in_group(group) {
+    for(let i = 0; i < group.children.entries.length; i++) {
+        if(!group.children.entries[i].active)
+            return group.children.entries[i];
     }
     return null;
+}
+
+function find_inactive_laser() {
+    return find_inactive_in_group(lasers);
 }
 
 function update_lasers(game)
@@ -186,6 +196,7 @@ function update_movement(game)
 
 function update()
 {
+    //console.log("Delta: " + this.loop.delta);
     // TODO spawn asteroids
     update_lasers(this);
     update_movement(this);
